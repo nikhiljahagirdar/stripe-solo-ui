@@ -12,6 +12,16 @@ const getFetchOptions = (method: string = "GET", token?: string, body?: any) => 
   ...(body && { body: JSON.stringify(body) }),
 });
 
+const safeParseJson = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
 const appendDateFilters = (params: URLSearchParams, year?: string, month?: string) => {
   if (year && year !== "all") params.append("year", year);
   if (month && month !== "all") params.append("month", month);
@@ -20,10 +30,24 @@ const appendDateFilters = (params: URLSearchParams, year?: string, month?: strin
 export const api = {
   // Auth
   register: async (data: { firstName: string; lastName: string; email: string; password: string }) =>
-    fetch(`${API_BASE_URL}/auth/register`, getFetchOptions("POST", undefined, data)).then((r) => r.json()),
+    fetch(`${API_BASE_URL}/auth/register`, getFetchOptions("POST", undefined, data)).then(async (r) => {
+      const payload = await safeParseJson(r);
+      if (!r.ok) {
+        const message = (payload as { message?: string } | null)?.message || 'Registration failed';
+        throw new Error(message);
+      }
+      return payload;
+    }),
 
   login: async (data: { email: string; password: string }) =>
-    fetch(`${API_BASE_URL}/auth/login`, getFetchOptions("POST", undefined, data)).then((r) => r.json()),
+    fetch(`${API_BASE_URL}/auth/login`, getFetchOptions("POST", undefined, data)).then(async (r) => {
+      const payload = await safeParseJson(r);
+      if (!r.ok) {
+        const message = (payload as { message?: string } | null)?.message || 'Login failed';
+        throw new Error(message);
+      }
+      return payload;
+    }),
 
   // Accounts
   getAccounts: async (token: string, year?: string, month?: string, accountId?: string) => {
