@@ -1,0 +1,66 @@
+
+> ui@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Γû▓ Next.js 16.0.7 (Turbopack, Cache Components)
+   - Environments: .env.local
+   - Experiments (use with caution):
+     Γ£ô turbopackFileSystemCacheForDev
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./app/(components)/admin/customers/page.tsx:316:21
+Parsing ecmascript source code failed
+  314 |                 </div>
+  315 |                 </div>
+> 316 |               </div>
+      |                     ^
+> 317 |             </CardHeader>
+      | ^^^^^^^^^^^^^
+  318 |             <CardContent className="p-6">
+  319 |               {view === 'card' ? (
+  320 |                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+Expected '</', got 'jsx text (
+            )'
+
+
+./app/(components)/admin/disputes/page.tsx:324:21
+Parsing ecmascript source code failed
+  322 |                 </div>
+  323 |                 </div>
+> 324 |               </div>
+      |                     ^
+> 325 |             </CardHeader>
+      | ^^^^^^^^^^^^^
+  326 |             <CardContent className="p-6">
+  327 |               {view === 'card' ? (
+  328 |                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+Expected '</', got 'jsx text (
+            )'
+
+
+./app/(components)/admin/payments/page.tsx:333:21
+Parsing ecmascript source code failed
+  331 |                 </div>
+  332 |                 </div>
+> 333 |               </div>
+      |                     ^
+> 334 |             </CardHeader>
+      | ^^^^^^^^^^^^^
+  335 |             <CardContent className="p-6">
+  336 |               {view === 'card' ? (
+  337 |                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+Expected '</', got 'jsx text (
+            )'
+
+
+    at <unknown> (./app/(components)/admin/customers/page.tsx:316:21)
+    at <unknown> (./app/(components)/admin/disputes/page.tsx:324:21)
+    at <unknown> (./app/(components)/admin/payments/page.tsx:333:21)
