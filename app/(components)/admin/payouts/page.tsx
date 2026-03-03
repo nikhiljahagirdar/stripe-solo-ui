@@ -1,5 +1,5 @@
 "use client";
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,7 +30,7 @@ import {
   IoBusiness
 } from "react-icons/io5";
 
-export default function PayoutsPage() {
+function PayoutsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = useAuthStore((state) => state.token);
@@ -41,11 +41,11 @@ export default function PayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [sort, setSort] = useState('created:desc');
+  const [sort, setSort] = useState('createdAt:desc');
   const [view, setView] = useState('card');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [sortDescriptor, setSortDescriptor] = useState({ column: "created", direction: "descending" });
+  const [sortDescriptor, setSortDescriptor] = useState({ column: "createdAt", direction: "descending" });
 
   const fetchPayouts = async () => {
     if (!token) return;
@@ -55,6 +55,8 @@ export default function PayoutsPage() {
       const params = new URLSearchParams();
       // Add accountId parameter - using 'default' as a fallback
       params.append('accountId', 'default');
+      params.append('page', page.toString());
+      params.append('limit', pageSize.toString());
       if (search) params.append('query', search);
       if (sort) params.append('sort', sort);
       if (year && year !== "all") params.append('year', year);
@@ -74,14 +76,25 @@ export default function PayoutsPage() {
         throw new Error(`HTTP error! status: ${response.status} - ${errorData.message || 'Failed to fetch payouts'}`);
       }
       
-      const data = await response.json();
-      let list = data.data || (Array.isArray(data) ? data : []);
+      const responseData = await response.json();
+      let list = responseData.data || (Array.isArray(responseData) ? responseData : []);
       
+      // Process data to match expected format and handle decimal string amounts
+      list = list.map((payout: any) => ({
+        ...payout,
+        // Convert decimal string amount to cents integer for AmountDisplay
+        amountCents: Math.round(parseFloat(payout.amount || 0) * 100),
+        // Ensure we have common field names
+        displayId: payout.stripePayoutId || payout.id,
+        arrivalDate: payout.arrivalDate,
+        createdAt: payout.createdAt || payout.created
+      }));
+
       // Client-side filtering for multiple properties if search is present
       if (search && search.trim()) {
         const searchLower = search.toLowerCase();
         list = list.filter((payout: any) => 
-          payout.id?.toLowerCase().includes(searchLower) ||
+          String(payout.displayId)?.toLowerCase().includes(searchLower) ||
           payout.description?.toLowerCase().includes(searchLower) ||
           payout.status?.toLowerCase().includes(searchLower) ||
           payout.amount?.toString().includes(searchLower)
@@ -89,7 +102,7 @@ export default function PayoutsPage() {
       }
       
       setPayouts(list);
-      setTotalCount(list.length);
+      setTotalCount(responseData.pagination?.total || list.length);
     } catch (error) {
       console.error("Failed to fetch payouts:", error);
       setPayouts([]);
@@ -105,7 +118,7 @@ export default function PayoutsPage() {
       return;
     }
     fetchPayouts();
-  }, [token, search, sort, year, month]);
+  }, [token, search, sort, year, month, page, pageSize]);
 
   const handleSortChange = useCallback((descriptor: any) => {
     setSortDescriptor(descriptor);
@@ -134,12 +147,12 @@ export default function PayoutsPage() {
 
   const columns = [
     { 
-      key: "id", 
+      key: "displayId", 
       label: "Payout ID", 
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-mono text-sm">
-          {row.id ? String(row.id).slice(-8) : 'N/A'}
+          {row.displayId ? String(row.displayId).slice(-12) : 'N/A'}
         </span>
       )
     },
@@ -149,7 +162,7 @@ export default function PayoutsPage() {
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-medium">
-          <AmountDisplay amount={row.amount || 0} currency={row.currency || 'usd'} />
+          <AmountDisplay amount={row.amountCents || 0} currency={row.currency || 'usd'} />
         </span>
       )
     },
@@ -160,22 +173,22 @@ export default function PayoutsPage() {
       render: (value: any, row: any) => getStatusBadge(row.status || 'pending')
     },
     { 
-      key: "arrival_date", 
+      key: "arrivalDate", 
       label: "Arrival Date", 
       sortable: true,
       render: (value: any, row: any) => (
         <span className="text-sm text-gray-600">
-          {row.arrival_date ? new Date(row.arrival_date * 1000).toLocaleDateString() : 'N/A'}
+          {row.arrivalDate ? new Date(row.arrivalDate).toLocaleDateString() : 'N/A'}
         </span>
       )
     },
     { 
-      key: "created", 
+      key: "createdAt", 
       label: "Created", 
       sortable: true,
       render: (value: any, row: any) => (
         <span className="text-sm text-gray-600">
-          {row.created ? new Date(row.created * 1000).toLocaleDateString() : 'N/A'}
+          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}
         </span>
       )
     },
@@ -198,267 +211,275 @@ export default function PayoutsPage() {
   if (loading) return <LoadingState message="Loading payouts..." />;
 
   return (
-    <AuthGuard>
-      <div className="space-y-6">
-        <PageFilters year={year} month={month} onYearChange={setYear} onMonthChange={setMonth} />
-          {/* Header */}
-          <DashboardHeader
-            title="Payouts"
-            description="Track your payouts and bank transfers"
-            icon={IoPaperPlane}
-            stats={[
-              {
-                label: "Total Payouts",
-                value: payouts.length.toString(),
-                change: "+12.3%",
-                trend: "up"
-              },
-              {
-                label: "Paid",
-                value: payouts.filter((p: any) => p.status === 'paid').length.toString(),
-                change: "+8.7%",
-                trend: "up"
-              },
-              {
-                label: "Total Amount",
-                value: `$${payouts.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`,
-                change: "+15.2%",
-                trend: "up"
-              }
-            ]}
+    <div className="space-y-6">
+      <PageFilters year={year} month={month} onYearChange={setYear} onMonthChange={setMonth} />
+        {/* Header */}
+        <DashboardHeader
+          title="Payouts"
+          description="Track your payouts and bank transfers"
+          icon={IoPaperPlane}
+          stats={[
+            {
+              label: "Total Payouts",
+              value: totalCount.toString(),
+              change: "+12.3%",
+              trend: "up"
+            },
+            {
+              label: "Paid",
+              value: payouts.filter((p: any) => p.status === 'paid').length.toString(),
+              change: "+8.7%",
+              trend: "up"
+            },
+            {
+              label: "Total Amount",
+              value: `$${payouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0).toFixed(2)}`,
+              change: "+15.2%",
+              trend: "up"
+            }
+          ]}
+        />
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Paid Out"
+            value={`$${payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0).toFixed(2)}`}
+            change="+15.2%"
+            trend="up"
+            icon={IoWallet}
+            gradient="revenue"
           />
+          <StatCard
+            title="Paid"
+            value={payouts.filter((p: any) => p.status === 'paid').length}
+            change="+8.7%"
+            trend="up"
+            icon={IoCheckmarkCircle}
+            gradient="success"
+          />
+          <StatCard
+            title="In Transit"
+            value={payouts.filter((p: any) => p.status === 'in_transit').length}
+            change="+2.1%"
+            trend="up"
+            icon={IoPaperPlane}
+            gradient="default"
+          />
+          <StatCard
+            title="Failed"
+            value={payouts.filter((p: any) => ['failed', 'canceled'].includes(p.status)).length}
+            change="-1.2%"
+            trend="down"
+            icon={IoCloseCircle}
+            gradient="payments"
+          />
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Paid Out"
-              value={`$${payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`}
-              change="+15.2%"
-              trend="up"
-              icon={IoWallet}
-              gradient="revenue"
-            />
-            <StatCard
-              title="Paid"
-              value={payouts.filter((p: any) => p.status === 'paid').length}
-              change="+8.7%"
-              trend="up"
-              icon={IoCheckmarkCircle}
-              gradient="success"
-            />
-            <StatCard
-              title="In Transit"
-              value={payouts.filter((p: any) => p.status === 'in_transit').length}
-              change="+2.1%"
-              trend="up"
-              icon={IoPaperPlane}
-              gradient="default"
-            />
-            <StatCard
-              title="Failed"
-              value={payouts.filter((p: any) => ['failed', 'canceled'].includes(p.status)).length}
-              change="-1.2%"
-              trend="down"
-              icon={IoCloseCircle}
-              gradient="payments"
-            />
-          </div>
-
-          {/* Payouts Table/Card View */}
-          <Card variant="elevated" className="overflow-hidden">
-            <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg font-semibold">Payout Transactions</CardTitle>
-                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
-                    {totalCount} total payouts found
-                  </CardDescription>
+        {/* Payouts Table/Card View */}
+        <Card variant="elevated" className="overflow-hidden">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg font-semibold">Payout Transactions</CardTitle>
+                <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                  {totalCount} total payouts found
+                </CardDescription>
+              </div>
+              {/* Filters and Controls */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full lg:w-auto">
+                {/* Filters on Left */}
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full">
+                  <Input
+                    placeholder="Search by ID, description, or status..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full sm:w-72"
+                  />
+                  <Select
+                    options={[
+                      { value: "", label: "Sort by..." },
+                      { value: "createdAt:desc", label: "Newest First" },
+                      { value: "createdAt:asc", label: "Oldest First" },
+                      { value: "amount:desc", label: "Amount (High to Low)" },
+                      { value: "amount:asc", label: "Amount (Low to High)" },
+                      { value: "arrivalDate:desc", label: "Arrival Date (Latest)" },
+                      { value: "arrivalDate:asc", label: "Arrival Date (Earliest)" }
+                    ]}
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="w-full sm:w-52"
+                  />
                 </div>
-                {/* Filters and Controls */}
-                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full lg:w-auto">
-                  {/* Filters on Left */}
-                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full">
-                    <Input
-                      placeholder="Search by ID, description, or status..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="w-full sm:w-72"
-                    />
-                    <Select
-                      options={[
-                        { value: "", label: "Sort by..." },
-                        { value: "created:desc", label: "Newest First" },
-                        { value: "created:asc", label: "Oldest First" },
-                        { value: "amount:desc", label: "Amount (High to Low)" },
-                        { value: "amount:asc", label: "Amount (Low to High)" },
-                        { value: "arrival_date:desc", label: "Arrival Date (Latest)" },
-                        { value: "arrival_date:asc", label: "Arrival Date (Earliest)" }
-                      ]}
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value)}
-                      className="w-full sm:w-52"
-                    />
-                  </div>
-                  {/* View Mode on Right */}
-                  <div className="flex items-end justify-end">
-                    <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden w-fit">
-                      <button
-                        onClick={() => setView('card')}
-                        className={`flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                          view === 'card'
-                            ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
-                        }`}
-                      >
-                        <IoGrid className="w-4 h-4 mr-1" />
-                        Cards
-                      </button>
-                      <button
-                        onClick={() => setView('table')}
-                        className={`flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                          view === 'table'
-                            ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
-                        }`}
-                      >
-                        <IoList className="w-4 h-4 mr-1" />
-                        Table
-                      </button>
-                    </div>
+                {/* View Mode on Right */}
+                <div className="flex items-end justify-end">
+                  <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden w-fit">
+                    <button
+                      onClick={() => setView('card')}
+                      className={`flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                        view === 'card'
+                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                      }`}
+                    >
+                      <IoGrid className="w-4 h-4 mr-1" />
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setView('table')}
+                      className={`flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                        view === 'table'
+                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                      }`}
+                    >
+                      <IoList className="w-4 h-4 mr-1" />
+                      Table
+                    </button>
                   </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {view === 'card' && (
-                payouts.length === 0 && !loading ? (
-                  <EmptyState
-                    title="No data found"
-                    description="No payouts match your current filters."
-                  />
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {payouts.map((payout: any, index) => (
-                      <motion.div
-                        key={payout.id || index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                      >
-                      <Card variant="elevated" className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700">
-                        <CardContent className="p-5">
-                          {/* Header with Status Badge and Amount */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              {getStatusBadge(payout.status)}
-                              <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400">
-                                ID: {payout.id ? String(payout.id).slice(-12) : 'N/A'}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                                <AmountDisplay amount={payout.amount} currency={payout.currency} />
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mt-1">
-                                {payout.currency || 'USD'}
-                              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {view === 'card' && (
+              payouts.length === 0 && !loading ? (
+                <EmptyState
+                  title="No data found"
+                  description="No payouts match your current filters."
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {payouts.map((payout: any, index) => (
+                    <motion.div
+                      key={payout.id || index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                    >
+                    <Card variant="elevated" className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700">
+                      <CardContent className="p-5">
+                        {/* Header with Status Badge and Amount */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            {getStatusBadge(payout.status)}
+                            <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400">
+                              ID: {payout.displayId ? String(payout.displayId).slice(-12) : 'N/A'}
                             </div>
                           </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                              <AmountDisplay amount={payout.amountCents} currency={payout.currency} />
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mt-1">
+                              {payout.currency || 'USD'}
+                            </div>
+                          </div>
+                        </div>
 
-                          {/* Payout Info */}
-                          <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                                <IoBusiness className="w-5 h-5" />
+                        {/* Payout Info */}
+                        <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                              <IoBusiness className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 dark:text-white truncate">
+                                {payout.description || 'Bank Transfer'}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-gray-900 dark:text-white truncate">
-                                  {payout.description || 'Bank Transfer'}
-                                </div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                  {payout.type === 'bank_account' ? 'Bank Account' : payout.type || 'Standard'}
-                                </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                {payout.type === 'bank_account' ? 'Bank Account' : payout.type || 'Standard'}
                               </div>
                             </div>
                           </div>
+                        </div>
 
-                          {/* Payout Details */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                                <IoCalendar className="w-3 h-3" />
-                                Arrival Date
-                              </span>
-                              <span className="text-gray-900 dark:text-white font-medium">
-                                {payout.arrival_date ? new Date(payout.arrival_date * 1000).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  year: 'numeric' 
-                                }) : 'N/A'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Created</span>
-                              <span className="text-gray-900 dark:text-white">
-                                {new Date(payout.created * 1000).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  year: 'numeric' 
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Status</span>
-                              <span className="text-gray-900 dark:text-white capitalize font-medium">
-                                {payout.status?.replace('_', ' ') || 'Pending'}
-                              </span>
-                            </div>
+                        {/* Payout Details */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                              <IoCalendar className="w-3 h-3" />
+                              Arrival Date
+                            </span>
+                            <span className="text-gray-900 dark:text-white font-medium">
+                              {payout.arrivalDate ? new Date(payout.arrivalDate).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              }) : 'N/A'}
+                            </span>
                           </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Created</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {payout.createdAt ? new Date(payout.createdAt).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              }) : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Status</span>
+                            <span className="text-gray-900 dark:text-white capitalize font-medium">
+                              {payout.status?.replace('_', ' ') || 'Pending'}
+                            </span>
+                          </div>
+                        </div>
 
-                          {/* Action Button */}
-                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <Button 
-                              variant="success" 
-                              style="soft" 
-                              size="sm"
-                              className="w-full"
-                              leftIcon={<IoEye className="w-4 h-4" />}
-                            >
-                              View Details
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                )
-              )}
-              {view === 'table' && (
-                <div className="overflow-x-auto">
-                  <DaisyTable
-                    columns={columns}
-                    data={payouts}
-                    loading={loading}
-                    emptyMessage="No payouts found"
-                    striped
-                    hoverable
-                    onSort={handleSortChange}
-                  />
+                        {/* Action Button */}
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <Button 
+                            variant="success" 
+                            style="soft" 
+                            size="sm"
+                            className="w-full"
+                            leftIcon={<IoEye className="w-4 h-4" />}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    </motion.div>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              )
+            )}
+            {view === 'table' && (
+              <div className="overflow-x-auto">
+                <DaisyTable
+                  columns={columns}
+                  data={payouts}
+                  loading={loading}
+                  emptyMessage="No payouts found"
+                  striped
+                  hoverable
+                  onSort={handleSortChange}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Pagination */}
-          <div className="flex justify-center">
-            <Pagination
-              currentPage={page}
-              totalPages={Math.ceil(totalCount / pageSize)}
-              onPageChange={setPage}
-            />
-          </div>
-      </div>
+        {/* Pagination */}
+        <div className="flex justify-center">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(totalCount / pageSize)}
+            onPageChange={setPage}
+          />
+        </div>
+    </div>
+  );
+}
+
+export default function PayoutsPage() {
+  return (
+    <AuthGuard>
+      <Suspense fallback={<LoadingState message="Loading payouts..." />}>
+        <PayoutsContent />
+      </Suspense>
     </AuthGuard>
   );
 }
