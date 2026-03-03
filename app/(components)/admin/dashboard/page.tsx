@@ -385,9 +385,9 @@ export default function DashboardPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {rows.length > 0 ? (
-                          rows.slice(0, 5).map((row, i) => (
+                          rows.slice(0, 5).map((row: any, i: number) => (
                             <tr key={i} className="hover:bg-gray-50/50">
-                              {columns.map((col, j) => (
+                              {columns.map((col: any, j: number) => (
                                 <td key={j} className="py-3 px-3 text-gray-600">
                                   {typeof col.render === "function" ? col.render(row) : "—"}
                                 </td>

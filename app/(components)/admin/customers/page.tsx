@@ -148,18 +148,8 @@ export default function CustomersPage() {
     { 
       key: "status", 
       label: "Status", 
-      sortable: true,
+      sortable: true, 
       render: (value: any, row: any) => getStatusBadge(row.status || 'active')
-    },
-    { 
-      key: "totalSpent", 
-      label: "Total Spent", 
-      sortable: true,
-      render: (value: any, row: Customer) => (
-        <span className="font-medium">
-          ${(row.totalSpent || 0).toFixed(2)}
-        </span>
-      )
     },
     { 
       key: "created", 
@@ -210,18 +200,12 @@ export default function CustomersPage() {
                 value: customers.filter((c: any) => c.status === 'active').length.toString(),
                 change: "+8.7%",
                 trend: "up"
-              },
-              {
-                label: "Total Lifetime Value",
-                value: `$${customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0).toFixed(2)}`,
-                change: "+15.2%",
-                trend: "up"
               }
             ]}
           />
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard
               title="Total Customers"
               value={customers.length}
@@ -245,14 +229,6 @@ export default function CustomersPage() {
               trend="up"
               icon={IoTime}
               gradient="default"
-            />
-            <StatCard
-              title="Lifetime Value"
-              value={`$${customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0).toFixed(2)}`}
-              change="+15.2%"
-              trend="up"
-              icon={IoWallet}
-              gradient="revenue"
             />
           </div>
 
@@ -279,9 +255,7 @@ export default function CustomersPage() {
                       { value: "created:desc", label: "Newest First" },
                       { value: "created:asc", label: "Oldest First" },
                       { value: "name:asc", label: "Name (A-Z)" },
-                      { value: "name:desc", label: "Name (Z-A)" },
-                      { value: "totalSpent:desc", label: "Highest Spender" },
-                      { value: "totalSpent:asc", label: "Lowest Spender" }
+                      { value: "name:desc", label: "Name (Z-A)" }
                     ]}
                     value={sort}
                     onChange={(e) => setSort(e.target.value)}
@@ -334,20 +308,12 @@ export default function CustomersPage() {
                       >
                       <Card variant="elevated" className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700">
                         <CardContent className="p-5">
-                          {/* Header with Status Badge and Total Spent */}
+                          {/* Header with Status Badge */}
                           <div className="flex items-start justify-between mb-4">
                             <div>
                               {getStatusBadge(customer.status)}
                               <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400">
                                 ID: {customer.id}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">
-                                Total Spent
-                              </div>
-                              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                                <AmountDisplay amount={customer.totalSpent} currency="usd" />
                               </div>
                             </div>
                           </div>
