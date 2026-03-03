@@ -19,7 +19,6 @@ const getPageInfo = (pathname: string) => {
   const routes = {
     "/admin/initsetup": { title: "Setup Stripe", icon: HiCog, description: "Configure your Stripe account" },
     "/admin/dashboard": { title: "Dashboard Overview", icon: HiChartBar, description: "Monitor your business performance" },
-    "/admin/analytics": { title: "Analytics", icon: HiPresentationChartLine, description: "Detailed insights and reports" },
     "/admin/customers": { title: "Customers", icon: HiUserGroup, description: "Manage customer accounts" },
     "/admin/payments": { title: "Payments", icon: HiCreditCard, description: "Track payment transactions" },
     "/admin/invoices": { title: "Invoice Management", icon: HiDocumentText, description: "Create and manage customer invoices" },

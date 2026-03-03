@@ -258,13 +258,7 @@ export default function DashboardPage() {
             title="Business Overview"
             description="Real-time performance metrics and recent activity"
             icon={CurrencyDollarIcon}
-          >
-            <div className="flex gap-2">
-              <Button variant="success" style="solid" size="sm" onClick={() => router.push('/admin/analytics')}>
-                Deep Dive Analytics
-              </Button>
-            </div>
-          </DashboardHeader>
+          />
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

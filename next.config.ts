@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/admin/analytics',
+        destination: '/admin/dashboard',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

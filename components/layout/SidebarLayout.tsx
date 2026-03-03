@@ -91,12 +91,6 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       gradient: 'from-blue-500 to-cyan-500'
     },
     {
-      name: 'Analytics',
-      href: '/admin/analytics',
-      icon: ChartBarIcon,
-      gradient: 'from-purple-500 to-pink-500'
-    },
-    {
       name: 'Payments',
       href: '/admin/payments',
       icon: CreditCardIcon,

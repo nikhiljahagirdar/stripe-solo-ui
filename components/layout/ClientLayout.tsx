@@ -30,8 +30,7 @@ interface SidebarItem {
 }
 
 const menuItems: SidebarItem[] = [
-  { name: "Overview", href: "/admin/dashboard", icon: ChartBarIcon },
-  { name: "Analytics", href: "/admin/analytics", icon: PresentationChartLineIcon },
+  { name: "Dashboard", href: "/admin/dashboard", icon: ChartBarIcon },
   { name: "Customers", href: "/admin/customers", icon: UserGroupIcon },
   { name: "Payments", href: "/admin/payments", icon: CreditCardIcon },
   { name: "Invoices", href: "/admin/invoices", icon: DocumentTextIcon },
