@@ -8,7 +8,11 @@ export function HydrationProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Just mark as hydrated - Zustand will auto-hydrate with persist middleware
-    setIsHydrated(true);
+    // Use requestAnimationFrame or setTimeout to avoid synchronous setState in effect body
+    const handle = requestAnimationFrame(() => {
+      setIsHydrated(true);
+    });
+    return () => cancelAnimationFrame(handle);
   }, []);
 
   // Show loading only on initial mount

@@ -25,13 +25,38 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+interface DashboardData {
+  totalRevenue: { growth: number };
+  totalCustomers: { count: number; growth: number };
+  totalProducts: number;
+  totalDisputes: number;
+  totalPayoutsCount: number;
+  revenueChart: {
+    current: Array<{ month: string; revenue: number }>;
+  };
+}
+
+interface SummaryData {
+  currency: string;
+  totalRevenue: number;
+  availableBalance: number;
+  totalPayouts: number;
+  pendingBalance: number;
+}
+
+interface Account {
+  id: string;
+  stripeAccountId?: string;
+  country: string;
+}
+
 export default function AnalyticsPage() {
   const token = useAuthStore((state) => state.token);
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [summaryData, setSummaryData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   
   const [filters, setFilters] = useState({
     year: new Date().getFullYear().toString(),
@@ -172,7 +197,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                     <span className="text-sm font-medium text-gray-600">Avg. Payout</span>
-                    <span className="text-lg font-bold text-emerald-600">{formatCurrency(summaryData?.totalPayouts / (dashboardData?.totalPayoutsCount || 1))}</span>
+                    <span className="text-lg font-bold text-emerald-600">{formatCurrency((summaryData?.totalPayouts || 0) / (dashboardData?.totalPayoutsCount || 1))}</span>
                   </div>
                 </div>
               </div>
@@ -189,8 +214,8 @@ export default function AnalyticsPage() {
                     <span className="font-mono font-bold">{formatCurrency(summaryData?.totalPayouts)}</span>
                   </div>
                   <div className="pt-4 border-t border-white/20 flex justify-between items-center">
-                    <span className="text-sm font-semibold">Total Net</span>
-                    <span className="text-xl font-bold font-mono">{formatCurrency(summaryData?.totalRevenue - summaryData?.totalPayouts)}</span>
+                    <span className="text-sm font-medium font-semibold">Total Net</span>
+                    <span className="text-xl font-bold font-mono">{formatCurrency((summaryData?.totalRevenue || 0) - (summaryData?.totalPayouts || 0))}</span>
                   </div>
                 </div>
               </div>

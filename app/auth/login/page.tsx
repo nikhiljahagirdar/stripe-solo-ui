@@ -212,7 +212,7 @@ export default function Login() {
               transition={{ delay: 0.8 }}
             >
               <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/auth/register"
                   className="font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105 inline-block"

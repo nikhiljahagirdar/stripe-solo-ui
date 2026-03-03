@@ -33,7 +33,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
           <div>
             <h3 className="font-medium text-gray-900">{subscription.product?.name || 'N/A'}</h3>
             <p className="text-xs text-gray-500 font-mono">
-              {subscription.stripeSubscriptionId?.slice(-8) || 'N/A'}
+              {subscription.stripeSubscriptionId ? String(subscription.stripeSubscriptionId).slice(-8) : 'N/A'}
             </p>
           </div>
         </div>

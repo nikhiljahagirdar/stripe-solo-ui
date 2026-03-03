@@ -80,7 +80,7 @@ export default function PaymentsPage() {
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-mono text-sm">
-          {row.paymentIntentId ? row.paymentIntentId.slice(-8) : 'N/A'}
+          {row.paymentIntentId ? String(row.paymentIntentId).slice(-8) : 'N/A'}
         </span>
       )
     },
@@ -390,7 +390,7 @@ export default function PaymentsPage() {
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Payment Intent</span>
                               <span className="font-mono text-xs text-gray-900 dark:text-white">
-                                {payment.paymentIntentId ? payment.paymentIntentId.slice(-12) : 'N/A'}
+                                {payment.paymentIntentId ? String(payment.paymentIntentId).slice(-12) : 'N/A'}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
@@ -449,7 +449,7 @@ export default function PaymentsPage() {
                       )},
                       { key: 'paymentIntentId', label: 'Payment Intent', render: (paymentIntentId: string) => (
                         <span className="font-mono text-xs text-gray-600 dark:text-gray-400">
-                          {paymentIntentId ? paymentIntentId.slice(-12) : 'N/A'}
+                          {paymentIntentId ? String(paymentIntentId).slice(-12) : 'N/A'}
                         </span>
                       )},
                       { key: 'amount', label: 'Amount', render: (amount: number, payment: any) => (

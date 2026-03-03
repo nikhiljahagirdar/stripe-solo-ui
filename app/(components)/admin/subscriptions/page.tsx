@@ -96,7 +96,7 @@ export default function SubscriptionsPage() {
       label: "ID", 
       sortable: true,
       render: (value: any, row: any) => (
-        <span className="font-mono text-sm">{row.id ? row.id.slice(-8) : 'N/A'}</span>
+        <span className="font-mono text-sm">{row.id ? String(row.id).slice(-8) : 'N/A'}</span>
       )
     },
     { 

@@ -30,6 +30,41 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+interface DashboardData {
+  totalRevenue: { amount: number; growth: number };
+  totalCustomers: { count: number; growth: number };
+  monthlyGrowth: number;
+  revenueChart: {
+    current: Array<{ month: string; revenue: number }>;
+    previous: Array<{ month: string; revenue: number }>;
+  };
+}
+
+interface SummaryData {
+  currency: string;
+  totalRevenue: number;
+  availableBalance: number;
+  totalPayouts: number;
+  pendingBalance: number;
+}
+
+interface Account {
+  id: string;
+  stripeAccountId?: string;
+  country: string;
+}
+
+interface TabData {
+  customers: any[];
+  subscriptions: any[];
+  invoices: any[];
+  payments: any[];
+  disputes: any[];
+  accounts: Account[];
+  products: any[];
+  prices: any[];
+}
+
 export default function DashboardPage() {
   const token = useAuthStore((state) => state.token);
   const router = useRouter();
@@ -38,13 +73,13 @@ export default function DashboardPage() {
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [month, setMonth] = useState("all");
   const [accountId, setAccountId] = useState("all");
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [summaryData, setSummaryData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [activeTab, setActiveTab] = useState<string>("customers");
-  const [tabData, setTabData] = useState<any>({
+  const [tabData, setTabData] = useState<TabData>({
     customers: [], subscriptions: [], invoices: [], payments: [], 
     disputes: [], accounts: [], products: [], prices: []
   });
@@ -262,39 +297,49 @@ export default function DashboardPage() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Revenue"
-              value={formatMoney(summaryData?.totalRevenue)}
-              change={`${dashboardData?.totalRevenue?.growth > 0 ? '+' : ''}${dashboardData?.totalRevenue?.growth || 0}%`}
-              trend={(dashboardData?.totalRevenue?.growth || 0) >= 0 ? "up" : "down"}
-              icon={CurrencyDollarIcon}
-              gradient="sunset"
-            />
-            <StatCard
-              title="Total Customers"
-              value={dashboardData?.totalCustomers?.count?.toString() || '0'}
-              change={`${dashboardData?.totalCustomers?.growth > 0 ? '+' : ''}${dashboardData?.totalCustomers?.growth || 0}%`}
-              trend={(dashboardData?.totalCustomers?.growth || 0) >= 0 ? "up" : "down"}
-              icon={UserGroupIcon}
-              gradient="aurora"
-            />
-            <StatCard
-              title="Available Balance"
-              value={formatMoney(summaryData?.availableBalance)}
-              icon={CreditCardIcon}
-              gradient="ocean"
-            >
-              <div className="flex items-center justify-between text-[10px] text-gray-500 mt-1">
-                <span>Pending: {formatMoney(summaryData?.pendingBalance)}</span>
-              </div>
-            </StatCard>
-            <StatCard
-              title="Net Growth"
-              value={`${dashboardData?.monthlyGrowth || 0}%`}
-              trend={(dashboardData?.monthlyGrowth || 0) >= 0 ? "up" : "down"}
-              icon={BanknotesIcon}
-              gradient="neon"
-            />
+            {(() => {
+              const revGrowth = dashboardData?.totalRevenue?.growth || 0;
+              const custGrowth = dashboardData?.totalCustomers?.growth || 0;
+              const netGrowth = dashboardData?.monthlyGrowth || 0;
+
+              return (
+                <>
+                  <StatCard
+                    title="Total Revenue"
+                    value={formatMoney(summaryData?.totalRevenue)}
+                    change={`${revGrowth > 0 ? '+' : ''}${revGrowth}%`}
+                    trend={revGrowth >= 0 ? "up" : "down"}
+                    icon={CurrencyDollarIcon}
+                    gradient="sunset"
+                  />
+                  <StatCard
+                    title="Total Customers"
+                    value={dashboardData?.totalCustomers?.count?.toString() || '0'}
+                    change={`${custGrowth > 0 ? '+' : ''}${custGrowth}%`}
+                    trend={custGrowth >= 0 ? "up" : "down"}
+                    icon={UserGroupIcon}
+                    gradient="aurora"
+                  />
+                  <StatCard
+                    title="Available Balance"
+                    value={formatMoney(summaryData?.availableBalance)}
+                    icon={CreditCardIcon}
+                    gradient="ocean"
+                  >
+                    <div className="flex items-center justify-between text-[10px] text-gray-500 mt-1">
+                      <span>Pending: {formatMoney(summaryData?.pendingBalance)}</span>
+                    </div>
+                  </StatCard>
+                  <StatCard
+                    title="Net Growth"
+                    value={`${netGrowth}%`}
+                    trend={netGrowth >= 0 ? "up" : "down"}
+                    icon={BanknotesIcon}
+                    gradient="neon"
+                  />
+                </>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -325,7 +370,7 @@ export default function DashboardPage() {
                           <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
                             <td className="py-3 px-4">
                               <div className="font-medium text-gray-900">{formatMoney(payment.amount)}</div>
-                              <div className="text-xs text-gray-500 font-mono">{payment.id.substring(0, 12)}...</div>
+                              <div className="text-xs text-gray-500 font-mono">{String(payment.id).substring(0, 12)}...</div>
                             </td>
                             <td className="py-3 px-4 text-right">
                               <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${

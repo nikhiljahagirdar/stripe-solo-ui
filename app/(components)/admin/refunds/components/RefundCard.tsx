@@ -23,10 +23,10 @@ export default function RefundCard({ refund }: RefundCardProps) {
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="font-mono text-sm font-medium">
-            {refund.stripeRefundId ? refund.stripeRefundId.slice(-8) : 'N/A'}
+            {refund.stripeRefundId ? String(refund.stripeRefundId).slice(-8) : 'N/A'}
           </h3>
           <p className="text-xs opacity-75 font-mono">
-            Charge: {refund.stripeChargeId ? refund.stripeChargeId.slice(-8) : 'N/A'}
+            Charge: {refund.stripeChargeId ? String(refund.stripeChargeId).slice(-8) : 'N/A'}
           </p>
         </div>
         <StatusBadge status={refund.status || 'unknown'} variant="payment" />

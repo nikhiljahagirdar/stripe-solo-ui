@@ -22,7 +22,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div>
             <h3 className="font-medium text-gray-900">{product.name || 'N/A'}</h3>
             <p className="text-xs text-gray-500 font-mono">
-              {product.stripeProductId?.slice(-8) || 'N/A'}
+              {product.stripeProductId ? String(product.stripeProductId).slice(-8) : 'N/A'}
             </p>
           </div>
         </div>

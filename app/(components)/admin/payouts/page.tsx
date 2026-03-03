@@ -139,7 +139,7 @@ export default function PayoutsPage() {
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-mono text-sm">
-          {row.id ? row.id.slice(-8) : 'N/A'}
+          {row.id ? String(row.id).slice(-8) : 'N/A'}
         </span>
       )
     },
@@ -352,7 +352,7 @@ export default function PayoutsPage() {
                             <div>
                               {getStatusBadge(payout.status)}
                               <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400">
-                                ID: {payout.id ? payout.id.slice(-12) : 'N/A'}
+                                ID: {payout.id ? String(payout.id).slice(-12) : 'N/A'}
                               </div>
                             </div>
                             <div className="text-right">

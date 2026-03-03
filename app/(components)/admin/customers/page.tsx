@@ -130,7 +130,7 @@ export default function CustomersPage() {
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-mono text-sm">
-          {row.stripeCustomerId ? row.stripeCustomerId.slice(-8) : row.id}
+          {row.stripeCustomerId ? String(row.stripeCustomerId).slice(-8) : row.id}
         </span>
       )
     },
@@ -341,7 +341,7 @@ export default function CustomersPage() {
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Customer ID</span>
                               <span className="font-mono text-xs text-gray-900 dark:text-white">
-                                {customer.stripeCustomerId ? customer.stripeCustomerId.slice(-12) : 'N/A'}
+                                {customer.stripeCustomerId ? String(customer.stripeCustomerId).slice(-12) : 'N/A'}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">

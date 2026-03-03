@@ -113,7 +113,7 @@ export default function DisputesPage() {
       sortable: true,
       render: (value: any, row: any) => (
         <span className="font-mono text-sm">
-          {row.id ? row.id.slice(-8) : 'N/A'}
+          {row.id ? String(row.id).slice(-8) : 'N/A'}
         </span>
       )
     },
@@ -347,7 +347,7 @@ export default function DisputesPage() {
                             <div>
                               {getStatusBadge(dispute.status)}
                               <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400">
-                                ID: {dispute.id ? dispute.id.slice(-12) : 'N/A'}
+                                ID: {dispute.id ? String(dispute.id).slice(-12) : 'N/A'}
                               </div>
                             </div>
                             <div className="text-right">

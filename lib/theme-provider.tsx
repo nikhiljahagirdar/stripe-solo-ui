@@ -31,7 +31,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   defaultTheme = 'modern' 
 }) => {
   const [themeName, setThemeName] = useState<ThemeName>(defaultTheme);
-  const [isDark, setIsDark] = useState(false);
+  const isDark = themeName === 'dark';
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as ThemeName;
@@ -42,7 +42,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   useEffect(() => {
     localStorage.setItem('theme', themeName);
-    setIsDark(themeName === 'dark');
     
     // Update CSS variables
     const root = document.documentElement;
@@ -83,7 +82,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     } else {
       document.body.classList.remove('dark');
     }
-  }, [themeName, isDark]);
+  }, [themeName]);
 
   const setTheme = (newThemeName: ThemeName) => {
     setThemeName(newThemeName);
