@@ -50,6 +50,14 @@ export default function RevenueOverTime({ currentYearData, lastYearData }: Reven
     },
     xaxis: { 
       categories: currentYearData.map(item => item.month),
+      title: {
+        text: 'Month',
+        style: {
+          color: '#6B7280',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      },
       labels: {
         style: {
           colors: '#6B7280',
@@ -61,6 +69,14 @@ export default function RevenueOverTime({ currentYearData, lastYearData }: Reven
       axisTicks: { show: false }
     },
     yaxis: { 
+      title: {
+        text: 'Revenue ($)',
+        style: {
+          color: '#6B7280',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      },
       labels: {
         style: {
           colors: '#6B7280',

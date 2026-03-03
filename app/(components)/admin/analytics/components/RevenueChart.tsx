@@ -21,8 +21,35 @@ export default function RevenueChart({ data, title = "Revenue Analytics" }: Reve
     colors: ['#3B82F6', '#10B981', '#F59E0B'],
     stroke: { curve: 'smooth' as const, width: 3 },
     grid: { show: true },
-    xaxis: { categories: data.map(item => item.date) },
-    yaxis: { show: true },
+    xaxis: { 
+      categories: data.map(item => item.date),
+      title: {
+        text: 'Date',
+        style: {
+          color: '#6B7280',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      }
+    },
+    yaxis: { 
+      show: true,
+      title: {
+        text: 'Revenue ($)',
+        style: {
+          color: '#6B7280',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      },
+      labels: {
+        style: {
+          colors: '#6B7280',
+          fontSize: '12px'
+        },
+        formatter: (value: number) => `$${value.toLocaleString()}`
+      }
+    },
     tooltip: { theme: 'dark' as const },
     legend: { show: true },
   }), [data]);

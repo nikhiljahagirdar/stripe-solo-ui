@@ -1,25 +1,19 @@
 "use client";
-import { lazy, Suspense } from "react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
-import PageFilters from "@/components/common/PageFilters";
 import { LoadingState } from "@/components";
 import { api } from "@/services/api";
 import DashboardHeader from "@/components/ui/DashboardHeader";
-import StatCard from "@/components/ui/StatCard";
 import AuthGuard from "@/components/auth/AuthGuard";
-import { 
-  IoAnalytics, 
-  IoPeople, 
-  IoCube,
-  IoAlertCircle,
-  IoCash,
-  IoCard,
-  IoWallet
-} from "react-icons/io5";
+import { IoAnalytics } from "react-icons/io5";
 
-// Client-side only component wrapper to prevent hydration issues
+import AnalyticsFilters from "./components/AnalyticsFilters";
+import MetricsCards from "./components/MetricsCards";
+import RevenueChart from "./components/RevenueChart";
+import RecentTransactions from "./components/RecentTransactions";
+
+// Client-side only component wrapper
 function ClientOnly({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
 
@@ -27,182 +21,181 @@ function ClientOnly({ children }: { children: React.ReactNode }) {
     setIsClient(true);
   }, []);
 
-  if (!isClient) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingState message="Loading..." />
-      </div>
-    );
-  }
-
+  if (!isClient) return null;
   return <>{children}</>;
 }
 
 export default function AnalyticsPage() {
   const token = useAuthStore((state) => state.token);
-  const [year, setYear] = useState("all");
-  const [month, setMonth] = useState("all");
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [summaryData, setSummaryData] = useState<any>(null);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  
+  const [filters, setFilters] = useState({
+    year: new Date().getFullYear().toString(),
+    month: "all",
+    status: "all",
+    accountId: "all"
+  });
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchAccounts = async () => {
       if (!token) return;
-      
-      setLoading(true);
       try {
-        // Fetch both dashboard and summary data
-        const [dashboard, summary] = await Promise.all([
-          api.getDashboard(token, undefined, year),
-          api.getAnalyticsSummary(token, undefined, year, month)
-        ]);
-        
-        setDashboardData(dashboard);
-        setSummaryData(summary);
+        const data = await api.getAccounts(token);
+        setAccounts(Array.isArray(data) ? data : data?.data || []);
       } catch (error) {
-        console.error("Error fetching analytics:", error);
-        setDashboardData(null);
-        setSummaryData(null);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching accounts:", error);
       }
     };
+    fetchAccounts();
+  }, [token]);
 
+  const fetchAnalytics = useCallback(async () => {
+    if (!token) return;
+    
+    setLoading(true);
+    try {
+      const selectedAccountId = filters.accountId === "all" || filters.accountId === "" ? undefined : filters.accountId;
+      const selectedYear = filters.year === "all" ? undefined : filters.year;
+      const selectedMonth = filters.month === "all" ? undefined : filters.month;
+
+      const query = filters.status !== 'all' ? `status:${filters.status}` : '';
+
+      const [dashboard, summary, payments] = await Promise.all([
+        api.getDashboard(token, selectedAccountId, selectedYear),
+        api.getAnalyticsSummary(token, selectedAccountId, selectedYear, selectedMonth),
+        api.getPayments(token, 1, 5, query, 'created:desc', selectedYear, selectedMonth)
+      ]);
+      
+      setDashboardData(dashboard);
+      setSummaryData(summary);
+      setRecentTransactions(payments?.data || []);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, filters]);
+
+  useEffect(() => {
     fetchAnalytics();
-  }, [token, year, month]);
+  }, [fetchAnalytics]);
 
-  if (loading) return <LoadingState message="Loading analytics..." />;
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
 
-  // Dashboard metrics
-  const totalCustomers = dashboardData?.totalCustomers || 0;
-  const totalProducts = dashboardData?.totalProducts || 0;
-  const totalDisputes = dashboardData?.totalDisputes || 0;
-  const totalPayoutsCount = dashboardData?.totalPayoutsCount || 0;
-  const totalPayoutsAmount = dashboardData?.totalPayoutsAmount 
-    ? `$${((dashboardData.totalPayoutsAmount) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-    : '$0.00';
+  if (loading && !dashboardData) return (
+    <AuthGuard>
+      <div className="flex w-full items-center justify-center min-h-screen">
+        <LoadingState message="Loading analytics..." />
+      </div>
+    </AuthGuard>
+  );
 
-  // Summary metrics
-  const totalRevenue = summaryData?.totalRevenue 
-    ? `$${((summaryData.totalRevenue) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-    : '$0.00';
-  const totalPayouts = summaryData?.totalPayouts 
-    ? `$${((summaryData.totalPayouts) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-    : '$0.00';
-  const availableBalance = summaryData?.availableBalance 
-    ? `$${((summaryData.availableBalance) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-    : '$0.00';
-  const pendingBalance = summaryData?.pendingBalance 
-    ? `$${((summaryData.pendingBalance) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-    : '$0.00';
+  const formatCurrency = (amount: number = 0) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: summaryData?.currency?.toUpperCase() || 'USD',
+    }).format(amount / 100);
+  };
+
+  const revenueChartData = dashboardData?.revenueChart?.current?.map((item: any) => ({
+    date: item.month,
+    amount: item.revenue
+  })) || [];
+
+  const metrics = [
+    {
+      title: "Total Revenue",
+      value: formatCurrency(summaryData?.totalRevenue),
+      change: dashboardData?.totalRevenue?.growth || 0,
+      trend: (dashboardData?.totalRevenue?.growth || 0) >= 0 ? "up" as const : "down" as const,
+    },
+    {
+      title: "Net Revenue",
+      value: formatCurrency(summaryData?.availableBalance),
+      change: 0,
+      trend: "up" as const,
+    },
+    {
+      title: "New Customers",
+      value: dashboardData?.totalCustomers?.count?.toString() || '0',
+      change: dashboardData?.totalCustomers?.growth || 0,
+      trend: (dashboardData?.totalCustomers?.growth || 0) >= 0 ? "up" as const : "down" as const,
+    },
+    {
+      title: "Successful Payments",
+      value: dashboardData?.totalPayoutsCount?.toString() || '0',
+      change: 0,
+      trend: "up" as const,
+    }
+  ];
 
   return (
     <AuthGuard>
       <ClientOnly>
-        <div className="space-y-8">
-          <PageFilters year={year} month={month} onYearChange={setYear} onMonthChange={setMonth} />
-            {/* Header */}
-            <DashboardHeader
-              title="Analytics Dashboard"
-              description="Track your business performance with real-time insights and metrics"
-              icon={IoAnalytics}
-              stats={[
-                {
-                  label: "Total Revenue",
-                  value: totalRevenue,
-                  change: "",
-                  trend: "up"
-                },
-                {
-                  label: "Available Balance",
-                  value: availableBalance,
-                  change: "",
-                  trend: "up"
-                }
-              ]}
-            />
+        <div className="space-y-8 pb-12">
+          <DashboardHeader
+            title="Analytics & Insights"
+            description="Deep dive into your financial performance and business health"
+            icon={IoAnalytics}
+          />
 
-            {/* Financial Summary */}
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Financial Summary</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <StatCard
-                  title="Total Revenue"
-                  value={totalRevenue}
-                  icon={IoCash}
-                  gradient="success"
-                />
-                <StatCard
-                  title="Total Payouts"
-                  value={totalPayouts}
-                  icon={IoCard}
-                  gradient="info"
-                />
-                <StatCard
-                  title="Available Balance"
-                  value={availableBalance}
-                  icon={IoWallet}
-                  gradient="warning"
-                />
-                <StatCard
-                  title="Pending Balance"
-                  value={pendingBalance}
-                  icon={IoCash}
-                  gradient="payments"
-                />
-              </div>
+          <AnalyticsFilters onFiltersChange={handleFiltersChange} accounts={accounts} />
+
+          <MetricsCards metrics={metrics} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <RevenueChart 
+                data={revenueChartData} 
+                title={`Revenue Trends - ${filters.year === 'all' ? 'All Time' : filters.year}${filters.month !== 'all' ? ` / ${filters.month}` : ''}`} 
+              />
+              <RecentTransactions transactions={recentTransactions} />
             </div>
 
-            {/* Business Metrics */}
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Business Metrics</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <StatCard
-                  title="Total Customers"
-                  value={totalCustomers.toString()}
-                  icon={IoPeople}
-                  gradient="customers"
-                />
-                <StatCard
-                  title="Total Products"
-                  value={totalProducts.toString()}
-                  icon={IoCube}
-                  gradient="subscriptions"
-                />
-                <StatCard
-                  title="Total Disputes"
-                  value={totalDisputes.toString()}
-                  icon={IoAlertCircle}
-                  gradient="danger"
-                />
-                <StatCard
-                  title="Payouts Count"
-                  value={totalPayoutsCount.toString()}
-                  icon={IoCard}
-                  gradient="info"
-                />
+            <div className="space-y-8">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Business Health</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Total Products</span>
+                    <span className="text-lg font-bold text-gray-900">{dashboardData?.totalProducts || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Active Disputes</span>
+                    <span className="text-lg font-bold text-red-600">{dashboardData?.totalDisputes || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Avg. Payout</span>
+                    <span className="text-lg font-bold text-emerald-600">{formatCurrency(summaryData?.totalPayouts / (dashboardData?.totalPayoutsCount || 1))}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Payout Summary */}
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Payout Summary</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <StatCard
-                  title="Total Payouts Amount"
-                  value={totalPayoutsAmount}
-                  icon={IoCash}
-                  gradient="revenue"
-                />
-                <StatCard
-                  title="Number of Payouts"
-                  value={totalPayoutsCount.toString()}
-                  icon={IoCard}
-                  gradient="payments"
-                />
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-lg text-white">
+                <h2 className="text-xl font-semibold mb-6">Financial Summary</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center opacity-90">
+                    <span className="text-sm">Pending Balance</span>
+                    <span className="font-mono font-bold">{formatCurrency(summaryData?.pendingBalance)}</span>
+                  </div>
+                  <div className="flex justify-between items-center opacity-90">
+                    <span className="text-sm">Total Payouts</span>
+                    <span className="font-mono font-bold">{formatCurrency(summaryData?.totalPayouts)}</span>
+                  </div>
+                  <div className="pt-4 border-t border-white/20 flex justify-between items-center">
+                    <span className="text-sm font-semibold">Total Net</span>
+                    <span className="text-xl font-bold font-mono">{formatCurrency(summaryData?.totalRevenue - summaryData?.totalPayouts)}</span>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
         </div>
       </ClientOnly>
     </AuthGuard>

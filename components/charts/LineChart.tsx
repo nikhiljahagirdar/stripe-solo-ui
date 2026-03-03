@@ -35,6 +35,14 @@ export default function LineChart({ data, title, height = 350, color = "#3B82F6"
     },
     xaxis: {
       categories: data.map(item => item.x),
+      title: {
+        text: 'Month',
+        style: {
+          color: '#64748b',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      },
       labels: {
         style: {
           colors: '#64748b',
@@ -43,11 +51,20 @@ export default function LineChart({ data, title, height = 350, color = "#3B82F6"
       }
     },
     yaxis: {
+      title: {
+        text: 'Price ($)',
+        style: {
+          color: '#64748b',
+          fontSize: '12px',
+          fontWeight: 600
+        }
+      },
       labels: {
         style: {
           colors: '#64748b',
           fontSize: '12px'
-        }
+        },
+        formatter: (value: number) => `$${value.toLocaleString()}`
       }
     },
     tooltip: {

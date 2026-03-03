@@ -1,100 +1,128 @@
 "use client";
 
 import { useState } from "react";
+import { IoFilter, IoCalendar, IoCard, IoBusiness } from "react-icons/io5";
 
 interface FiltersProps {
   readonly onFiltersChange: (filters: any) => void;
+  readonly accounts?: any[];
 }
 
-export default function AnalyticsFilters({ onFiltersChange }: FiltersProps) {
-  const [dateRange, setDateRange] = useState("30d");
+export default function AnalyticsFilters({ onFiltersChange, accounts = [] }: FiltersProps) {
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [month, setMonth] = useState("all");
   const [status, setStatus] = useState("all");
-  const [accountId, setAccountId] = useState("");
-  const [customDateFrom, setCustomDateFrom] = useState("");
-  const [customDateTo, setCustomDateTo] = useState("");
-  const [showCustomDate, setShowCustomDate] = useState(false);
+  const [accountId, setAccountId] = useState("all");
 
-  const handleFilterChange = () => {
-    const filters = {
-      dateRange: showCustomDate ? 'custom' : dateRange,
+  const handleFilterChange = (updates: any) => {
+    const newFilters = {
+      year,
+      month,
       status,
-      accountId,
-      customDateFrom: showCustomDate ? customDateFrom : '',
-      customDateTo: showCustomDate ? customDateTo : ''
+      accountId: accountId === "all" ? "" : accountId,
+      ...updates
     };
-    onFiltersChange(filters);
+    onFiltersChange(newFilters);
   };
 
-  const handleDateRangeChange = (value: string) => {
-    setDateRange(value);
-    setShowCustomDate(value === 'custom');
-    setTimeout(() => {
-      const filters = {
-        dateRange: value === 'custom' ? 'custom' : value,
-        status,
-        accountId,
-        customDateFrom: value === 'custom' ? customDateFrom : '',
-        customDateTo: value === 'custom' ? customDateTo : ''
-      };
-      onFiltersChange(filters);
-    }, 0);
-  };
-
-  const handleStatusChange = (value: string) => {
-    setStatus(value);
-    setTimeout(() => {
-      const filters = {
-        dateRange: showCustomDate ? 'custom' : dateRange,
-        status: value,
-        accountId,
-        customDateFrom: showCustomDate ? customDateFrom : '',
-        customDateTo: showCustomDate ? customDateTo : ''
-      };
-      onFiltersChange(filters);
-    }, 0);
-  };
+  const years = ["2023", "2024", "2025", "2026"];
+  const months = [
+    { value: "all", label: "All Months" },
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Analytics Filters</h2>
-        <button 
-          onClick={() => {
-            setDateRange("30d");
-            setStatus("all");
-            setAccountId("");
-            setCustomDateFrom("");
-            setCustomDateTo("");
-            setShowCustomDate(false);
-          }}
-          className="text-sm text-gray-500 hover:text-gray-700 underline"
-        >
-          Clear All
-        </button>
+    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
+      <div className="flex items-center gap-2 mb-6 text-gray-800">
+        <IoFilter className="w-5 h-5 text-blue-600" />
+        <h2 className="text-lg font-bold">Analytics Filters</h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-          <select title="Date Range"
-            value={dateRange} 
-            onChange={(e) => handleDateRangeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <IoBusiness className="text-gray-400" />
+            Account
+          </label>
+          <select title="Account"
+            value={accountId} 
+            onChange={(e) => {
+              setAccountId(e.target.value);
+              handleFilterChange({ accountId: e.target.value });
+            }}
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all text-sm"
           >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-            <option value="1y">Last year</option>
-            <option value="custom">Custom Range</option>
+            <option value="all">All Accounts</option>
+            {accounts.map((acc: any) => (
+              <option key={acc.id} value={acc.stripeAccountId || acc.id}>
+                {acc.id} ({acc.country})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <IoCalendar className="text-gray-400" />
+            Year
+          </label>
+          <select title="Year"
+            value={year} 
+            onChange={(e) => {
+              setYear(e.target.value);
+              handleFilterChange({ year: e.target.value });
+            }}
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all text-sm"
+          >
+            <option value="all">All Years</option>
+            {years.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <IoCalendar className="text-gray-400" />
+            Month
+          </label>
+          <select title="Month"
+            value={month} 
+            onChange={(e) => {
+              setMonth(e.target.value);
+              handleFilterChange({ month: e.target.value });
+            }}
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all text-sm"
+          >
+            {months.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
           </select>
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <IoCard className="text-gray-400" />
+            Status
+          </label>
           <select title="Payment Status"
             value={status} 
-            onChange={(e) => handleStatusChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => {
+              setStatus(e.target.value);
+              handleFilterChange({ status: e.target.value });
+            }}
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all text-sm"
           >
             <option value="all">All Statuses</option>
             <option value="succeeded">Succeeded</option>
@@ -103,55 +131,51 @@ export default function AnalyticsFilters({ onFiltersChange }: FiltersProps) {
             <option value="requires_payment_method">Requires Payment</option>
           </select>
         </div>
-        
-
-        
-        <div className="flex items-end">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">Active Filters: </span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-              {dateRange === 'custom' ? 'Custom' : dateRange}
-            </span>
-            {status !== 'all' && (
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs ml-1">
-                {status}
-              </span>
-            )}
-          </div>
-        </div>
       </div>
       
-      {showCustomDate && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-            <input 
-              title="From Date"
-              placeholder="Select From Date"
-              type="date" 
-              value={customDateFrom}
-              onChange={(e) => {
-                setCustomDateFrom(e.target.value);
-                setTimeout(handleFilterChange, 0);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-            <input 
-              title="To Date"
-              placeholder="Select To Date"
-              value={customDateTo}
-              onChange={(e) => {
-                setCustomDateTo(e.target.value);
-                setTimeout(handleFilterChange, 0);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+      <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
+        <div className="flex gap-2">
+          {accountId !== 'all' && (
+            <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-100">
+              Account Active
+            </span>
+          )}
+          {year !== 'all' && (
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100">
+              Year: {year}
+            </span>
+          )}
+          {month !== 'all' && (
+            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100">
+              Month: {months.find(m => m.value === month)?.label}
+            </span>
+          )}
+          {status !== 'all' && (
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
+              Status: {status}
+            </span>
+          )}
         </div>
-      )}
+        
+        <button 
+          onClick={() => {
+            const defaultYear = new Date().getFullYear().toString();
+            setYear(defaultYear);
+            setMonth("all");
+            setStatus("all");
+            setAccountId("all");
+            onFiltersChange({
+              year: defaultYear,
+              month: "all",
+              status: "all",
+              accountId: ""
+            });
+          }}
+          className="text-sm font-semibold text-gray-400 hover:text-blue-600 transition-colors"
+        >
+          Reset Filters
+        </button>
+      </div>
     </div>
   );
 }
